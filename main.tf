@@ -68,6 +68,18 @@ resource "azurerm_key_vault_access_policy" "uai" {
   ]
 }
 
+resource "azurerm_key_vault_access_policy" "msi" {
+  key_vault_id = azurerm_key_vault.this.id
+  object_id    = azurerm_data_factory.this.identity[0].principal_id
+  tenant_id    = data.azuread_client_config.this.tenant_id
+
+  key_permissions = [
+    "UnwrapKey",
+    "WrapKey",
+    "Get"
+  ]
+}
+
 resource "null_resource" "cmk_replacement_trigger" {
   triggers = {
     today = timestamp()
@@ -115,7 +127,7 @@ resource "azurerm_data_factory" "this" {
   }
 
   identity {
-    type         = "UserAssigned"
+    type         = "SystemAssigned, UserAssigned"
     identity_ids = [azurerm_user_assigned_identity.this.id]
   }
 
