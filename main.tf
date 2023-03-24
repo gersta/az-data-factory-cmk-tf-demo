@@ -68,12 +68,28 @@ resource "azurerm_key_vault_access_policy" "uai" {
   ]
 }
 
+resource "null_resource" "cmk_replacement_trigger" {
+  triggers = {
+    today = timestamp()
+  }
+}
+
+resource "time_offset" "offset" {
+  offset_days = 200
+
+  lifecycle {
+    replace_triggered_by = [null_resource.cmk_replacement_trigger]
+  }
+}
+
 resource "azurerm_key_vault_key" "this" {
   key_opts     = ["wrapKey", "unwrapKey"]
   key_type     = "RSA"
   key_size     = 4096
   key_vault_id = azurerm_key_vault.this.id
   name         = "customer-managed-key-${formatdate("YYYYMMDD-hhmm", timestamp())}"
+
+  expiration_date = time_offset.offset.rfc3339
 
   depends_on = [
     azurerm_key_vault_access_policy.client,
