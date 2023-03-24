@@ -11,11 +11,13 @@ provider "azurerm" {
   features {}
 }
 
+
+
+data "azuread_client_config" "this" {} # fpr service principals: azurerm
+
 locals {
   default_name = "data-factory-cmk-demo"
 }
-
-data "azuread_client_config" "this" {} # fpr service principals: azurerm
 
 resource "azurerm_resource_group" "this" {
   location = "westeurope"
@@ -71,12 +73,16 @@ resource "azurerm_key_vault_key" "this" {
   key_type     = "RSA"
   key_size     = 4096
   key_vault_id = azurerm_key_vault.this.id
-  name         = "customer-managed-key"
+  name         = "customer-managed-key-${formatdate("YYYYMMDD-hhmm", timestamp())}"
 
   depends_on = [
     azurerm_key_vault_access_policy.client,
     azurerm_key_vault_access_policy.uai
   ]
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "azurerm_data_factory" "this" {
